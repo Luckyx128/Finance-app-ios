@@ -1,61 +1,56 @@
-//
-//  ContentView.swift
-//  finance
-//
-//  Created by Lucas de Amorim on 06/06/26.
-//
-
 import SwiftUI
-import SwiftData
 
 struct ContentView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query private var items: [Item]
+    @Environment(AppViewModel.self) private var vm
 
     var body: some View {
-        NavigationSplitView {
-            List {
-                ForEach(items) { item in
-                    NavigationLink {
-                        Text("Item at \(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))")
-                    } label: {
-                        Text(item.timestamp, format: Date.FormatStyle(date: .numeric, time: .standard))
-                    }
-                }
-                .onDelete(perform: deleteItems)
-            }
-            .toolbar {
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    EditButton()
-                }
-                ToolbarItem {
-                    Button(action: addItem) {
-                        Label("Add Item", systemImage: "plus")
-                    }
-                }
-            }
-        } detail: {
-            Text("Select an item")
-        }
-    }
+        ZStack {
+            WallpaperView()
 
-    private func addItem() {
-        withAnimation {
-            let newItem = Item(timestamp: Date())
-            modelContext.insert(newItem)
-        }
-    }
+            switch vm.appFlow {
+            case .splash:
+                SplashView {
+                    withAnimation(.easeInOut(duration: 0.4)) { vm.appFlow = .onboarding }
+                }
+                .transition(.opacity)
 
-    private func deleteItems(offsets: IndexSet) {
-        withAnimation {
-            for index in offsets {
-                modelContext.delete(items[index])
+            case .onboarding:
+                OnboardingView {
+                    withAnimation(.easeInOut(duration: 0.4)) { vm.appFlow = .auth }
+                }
+                .transition(.asymmetric(
+                    insertion: .move(edge: .trailing).combined(with: .opacity),
+                    removal:   .opacity
+                ))
+
+            case .auth:
+                AuthView()
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                        removal:   .opacity
+                    ))
+
+            case .setup:
+                SetupView()
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                        removal:   .opacity
+                    ))
+
+            case .app:
+                MainTabView()
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .bottom).combined(with: .opacity),
+                        removal:   .opacity
+                    ))
             }
         }
+        .preferredColorScheme(.dark)
+        .animation(.easeInOut(duration: 0.4), value: vm.appFlow)
     }
 }
 
 #Preview {
     ContentView()
-        .modelContainer(for: Item.self, inMemory: true)
+        .environment(AppViewModel())
 }

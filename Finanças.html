@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Finanças — Liquid Glass</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=SF+Pro+Display:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg: #0e0420;
+    --fg: #ffffff;
+    --muted: rgba(255,255,255,0.62);
+    --dim: rgba(255,255,255,0.42);
+    --accent-1: #ff6ec7;
+    --accent-2: #6e8aff;
+    --accent-3: #c084fc;
+    --danger: #ff5a7a;
+    --success: #6affc4;
+    --warn: #ffc56e;
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: #050010;
+    color: var(--fg);
+    font-family: 'Inter', -apple-system, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    overflow: hidden;
+    height: 100vh;
+  }
+  /* page wrapper */
+  .stage {
+    position: fixed; inset: 0;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+  }
+  .stage-scale {
+    transform-origin: center center;
+    will-change: transform;
+  }
+  /* room/wallpaper behind device */
+  .room {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(circle at 20% 80%, #4c1d95 0%, transparent 50%),
+      radial-gradient(circle at 80% 20%, #831843 0%, transparent 50%),
+      radial-gradient(circle at 50% 50%, #1e1b4b 0%, transparent 70%),
+      #050010;
+  }
+  .room::before, .room::after {
+    content: ''; position: absolute; border-radius: 50%; filter: blur(80px);
+    opacity: 0.5;
+  }
+  .room::before {
+    width: 600px; height: 600px;
+    background: radial-gradient(circle, #ff6ec7, transparent 60%);
+    top: -10%; left: -10%;
+    animation: float1 28s ease-in-out infinite;
+  }
+  .room::after {
+    width: 700px; height: 700px;
+    background: radial-gradient(circle, #6e8aff, transparent 60%);
+    bottom: -20%; right: -15%;
+    animation: float2 32s ease-in-out infinite;
+  }
+  @keyframes float1 { 0%, 100% { transform: translate(0,0); } 50% { transform: translate(80px, 120px); } }
+  @keyframes float2 { 0%, 100% { transform: translate(0,0); } 50% { transform: translate(-100px, -60px); } }
+
+  /* wallpaper that lives INSIDE the device — what the glass refracts */
+  .wallpaper {
+    position: absolute; inset: 0;
+    overflow: hidden;
+    background: linear-gradient(160deg, #1a0b2e 0%, #2d0a3e 45%, #4a0e3d 100%);
+  }
+  .wallpaper .blob {
+    position: absolute; border-radius: 50%; filter: blur(60px);
+    will-change: transform;
+  }
+  .wallpaper .b1 { width: 380px; height: 380px; background: #ff6ec7; opacity: 0.55; top: -80px; left: -60px;
+    animation: wfloat1 24s ease-in-out infinite; }
+  .wallpaper .b2 { width: 320px; height: 320px; background: #6e8aff; opacity: 0.55; top: 120px; right: -80px;
+    animation: wfloat2 28s ease-in-out infinite; }
+  .wallpaper .b3 { width: 360px; height: 360px; background: #c084fc; opacity: 0.45; bottom: -100px; left: 20%;
+    animation: wfloat3 26s ease-in-out infinite; }
+  .wallpaper .b4 { width: 220px; height: 220px; background: #f0abfc; opacity: 0.35; top: 40%; left: 30%;
+    animation: wfloat1 32s ease-in-out infinite reverse; }
+  @keyframes wfloat1 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(60px, 90px) scale(1.15); } }
+  @keyframes wfloat2 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-80px, 60px) scale(0.9); } }
+  @keyframes wfloat3 { 0%,100% { transform: translate(0,0) scale(1); } 50% { transform: translate(-40px, -80px) scale(1.1); } }
+
+  /* glass primitive */
+  .glass {
+    position: relative;
+    backdrop-filter: blur(28px) saturate(180%);
+    -webkit-backdrop-filter: blur(28px) saturate(180%);
+    background: rgba(255,255,255,0.10);
+    border: 0.5px solid rgba(255,255,255,0.22);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.35),
+      inset 0 -1px 0 rgba(255,255,255,0.06),
+      0 8px 24px rgba(0,0,0,0.25);
+  }
+  .glass-strong {
+    backdrop-filter: blur(40px) saturate(200%);
+    -webkit-backdrop-filter: blur(40px) saturate(200%);
+    background: rgba(255,255,255,0.16);
+    border: 0.5px solid rgba(255,255,255,0.28);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,0.45),
+      inset 0 -1px 0 rgba(255,255,255,0.08),
+      0 10px 30px rgba(0,0,0,0.3);
+  }
+  .glass-subtle {
+    backdrop-filter: blur(20px) saturate(160%);
+    -webkit-backdrop-filter: blur(20px) saturate(160%);
+    background: rgba(255,255,255,0.06);
+    border: 0.5px solid rgba(255,255,255,0.14);
+  }
+
+  /* shine sweep */
+  .shine::before {
+    content: ''; position: absolute; inset: 0; pointer-events: none;
+    border-radius: inherit;
+    background: linear-gradient(135deg, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0) 40%);
+  }
+
+  /* number tabular */
+  .tnum { font-variant-numeric: tabular-nums; }
+
+  /* scrollbar */
+  .scroll::-webkit-scrollbar { width: 0; display: none; }
+  .scroll { scrollbar-width: none; }
+
+  /* page transitions */
+  .screen-enter {
+    animation: screenIn 360ms cubic-bezier(.32,.72,.24,1) both;
+  }
+  @keyframes screenIn {
+    from { opacity: 0; transform: translateY(12px) scale(0.985); }
+    to   { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .modal-enter {
+    animation: modalIn 380ms cubic-bezier(.32,.72,.24,1) both;
+  }
+  @keyframes modalIn {
+    from { opacity: 0; transform: translateY(40px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+  .pop-in { animation: popIn 260ms cubic-bezier(.32,.72,.24,1) both; }
+  @keyframes popIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  button.tap { transition: transform 120ms ease, filter 120ms ease; }
+  button.tap:active { transform: scale(0.96); filter: brightness(1.08); }
+
+  /* tab bar item */
+  .tab-item { transition: color 200ms ease; }
+  .tab-item.active { color: var(--accent-1); }
+
+  /* input reset */
+  input, select, textarea, button { font-family: inherit; color: inherit; }
+  input:focus, select:focus, textarea:focus { outline: none; }
+
+  /* hide outer scrollbars */
+  body { overscroll-behavior: none; }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="room"></div>
+    <div id="root" class="stage-scale"></div>
+  </div>
+
+  <script>
+    // Auto-scale device to fit viewport
+    (function() {
+      const DEVICE_W = 402, DEVICE_H = 874, MARGIN = 24;
+      function fit() {
+        const root = document.getElementById('root');
+        if (!root) return;
+        const s = Math.min(
+          (window.innerWidth - MARGIN * 2) / DEVICE_W,
+          (window.innerHeight - MARGIN * 2) / DEVICE_H,
+          1.2
+        );
+        root.style.transform = `scale(${s})`;
+      }
+      fit();
+      window.addEventListener('resize', fit);
+      window.addEventListener('load', fit);
+      setTimeout(fit, 100);
+      setTimeout(fit, 500);
+    })();
+  </script>
+
+  <script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+  <script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+  <script type="text/babel" src="ios-frame.jsx"></script>
+  <script type="text/babel" src="tweaks-panel.jsx"></script>
+  <script type="text/babel" src="glass.jsx"></script>
+  <script type="text/babel" src="screens.jsx"></script>
+  <script type="text/babel" src="onboarding.jsx"></script>
+  <script type="text/babel" src="app.jsx"></script>
+</body>
+</html>
