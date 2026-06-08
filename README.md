@@ -22,19 +22,46 @@ Os arquivos neste bundle são **referências de design feitas em HTML/React** �
 
 ## Status das etapas (roadmap)
 
+### Fase 1 — Produto (UI/UX em SwiftUI) — concluída
+
 | # | Etapa | Status |
 |---|---|---|
-| — | App base (Home, Lista, Detalhe, Cadastro/Edição, Análise, Perfil) | ✅ Pronto no design |
-| 1 | Splash + Onboarding (3 páginas) | ✅ Pronto no design |
-| 2 | Login / Cadastro / Esqueci senha | ⏳ A fazer |
-| 3 | Setup inicial (nome, renda, categorias) | ⏳ A fazer |
-| 4 | Notificações (central de avisos) | ⏳ A fazer |
-| 5 | Metas / Orçamento por categoria | ⏳ A fazer |
-| 6 | Histórico mensal (navegar meses) | ⏳ A fazer |
-| 7 | Calendário (contas no calendário) | ⏳ A fazer |
-| 8 | Confirmação de pagamento (fluxo passo-a-passo) | ⏳ A fazer |
-| 9 | Configurações detalhadas | ⏳ A fazer |
-| 10 | Exportar / Backup (CSV, PDF) | ⏳ A fazer |
+| — | App base (Home, Lista, Detalhe, Cadastro/Edição, Análise, Perfil) | ✅ Implementado |
+| 1 | Splash + Onboarding (3 páginas) | ✅ Implementado |
+| 2 | Login / Cadastro / Esqueci senha | ✅ Implementado (UI) |
+| 3 | Setup inicial (nome, renda, categorias) | ✅ Implementado |
+| 4 | Notificações (central de avisos) | ✅ Implementado |
+| 5 | Metas / Orçamento por categoria | ✅ Implementado |
+| 6 | Histórico mensal (navegar meses) | ✅ Implementado |
+| 7 | Calendário (contas no calendário) | ✅ Implementado |
+| 8 | Confirmação de pagamento (fluxo passo-a-passo) | ✅ Implementado |
+| 9 | Configurações detalhadas | ✅ Implementado |
+| 10 | Exportar / Backup (CSV, PDF) | ✅ Implementado |
+
+> Toda a Fase 1 roda **em memória**, com login simulado e dados de exemplo (seed). Não há persistência, backend nem autenticação real.
+
+### Fase 2 — Produção (login real + backend + sync) — a definir
+
+Objetivo: tirar o app do estado de protótipo. **Login real**, **backend próprio** e **sync na nuvem multi-dispositivo**, removendo todo conteúdo hardcoded (usuário "Lucas Ribeiro", 10 contas seed, login que aceita qualquer email/senha).
+
+**Decisões de arquitetura:**
+- Backend **próprio em Node.js + TypeScript**, em **repositório separado**. Este repo cobre o **contrato da API** + a **integração iOS**.
+- Persistência: **sync na nuvem multi-dispositivo** (perfil, contas e metas vêm do servidor), com cache local (SwiftData) para abertura rápida/offline.
+- Autenticação: **Email+senha, Sign in with Apple, Google** e **biometria (Face ID)** como bloqueio rápido.
+
+| # | Etapa | Camada | Status |
+|---|---|---|---|
+| 11 | Contrato da API (spec REST/JWT p/ backend separado) | Doc | ⏳ A fazer |
+| 12 | Camada de rede iOS (`APIClient`, DTOs, erros) | iOS | ⏳ A fazer |
+| 13 | Token seguro no Keychain + `SessionManager` + refresh | iOS | ⏳ A fazer |
+| 14 | Login / cadastro / reset reais (email+senha) | iOS | ⏳ A fazer |
+| 15 | Sign in with Apple | iOS | ⏳ A fazer |
+| 16 | Google Sign-In | iOS | ⏳ A fazer |
+| 17 | Persistência local (SwiftData) + sync — remover seed | iOS | ⏳ A fazer |
+| 18 | Sessão persistente (auto-login) + Face ID app lock real | iOS | ⏳ A fazer |
+| 19 | Limpeza de hardcoded, `signOut` real, estados loading/erro/offline | iOS | ⏳ A fazer |
+
+> Implementar **etapa por etapa, pedindo confirmação antes de avançar**. Nenhuma etapa da Fase 2 foi iniciada — esta seção é apenas definição.
 
 ---
 
@@ -227,6 +254,43 @@ Helpers já implementados (ver `glass.jsx`):
 - `fmtDate(iso)` → "DD/MM/YYYY"
 - `fmtDateShort(iso)` → "12 mai"
 - `daysUntil(iso)` → number (negativo = atrasada)
+
+---
+
+## Fase 2 — Produção (detalhamento das etapas 11–19)
+
+> Definição apenas — nada implementado ainda.
+
+### Hardcoded a remover (estado atual)
+- `AppState.swift:46` — usuário fixo `UserProfile("Lucas Ribeiro", "lucas.ribeiro@email.com", 6500)`
+- `AppState.swift:45` — `bills = seedBills` como estado inicial
+- `AppState.swift:151–162` — 10 contas seed (datas fixas 06/2026)
+- `AppState.swift:118–124` — `signOut()` **restaura** o seed (deveria limpar)
+- `AuthView.swift:163` / `:277` / `:436` — login/cadastro/reset apenas simulam (qualquer email+senha 6+ entra)
+- `ContentView.swift` — sempre inicia em splash→onboarding→auth (sem sessão persistida)
+- Sem Keychain, sem networking, sem persistência em disco.
+
+### Etapa 11 — Contrato da API (para o backend Node+TS separado)
+Base `…/v1`, **JWT** (access curto + refresh longo), erros `{ error:{ code, message } }`.
+
+**Auth:** `POST /auth/register` · `POST /auth/login` · `POST /auth/refresh` · `POST /auth/apple` · `POST /auth/google` · `POST /auth/forgot-password` · `POST /auth/reset-password` · `POST /auth/logout`
+**Perfil:** `GET /me` · `PATCH /me {name?,income?}`
+**Contas:** `GET /bills?month=YYYY-MM` · `POST /bills` · `PATCH /bills/:id` · `DELETE /bills/:id` · `POST /bills/:id/pay {method}`
+**Metas:** `GET /budgets` · `PUT /budgets/:categoryId {limit}` · `DELETE /budgets/:categoryId`
+
+Modelos servidor: `User(id,name,email,passwordHash?,appleSub?,googleSub?,income)`, `Bill(id,userId,name,value,due,category,recurring,paid,note,paymentMethod)`, `Budget(userId,categoryId,limit)`. Categorias seguem locais no app (`Category.swift`). `bill.id` passa a ser gerado pelo servidor.
+
+### Etapas 12–19 (iOS)
+- **12 — Rede:** `finance/Networking/{APIConfig,APIClient,APIError,DTOs}.swift`. `async/await` sobre `URLSession`; `baseURL` via `.xcconfig` (sem URL hardcoded). `Bill`/`UserProfile` viram `Codable`.
+- **13 — Sessão segura:** `finance/Auth/{KeychainStore,SessionManager}.swift`. Tokens **só no Keychain**. `SessionManager` (`@Observable`) é a fonte de verdade da sessão; injetado em `financeApp.swift`.
+- **14 — Auth email/senha:** ligar `LoginScreen.submit`/`SignupScreen.submit`/`ForgotPasswordScreen.sendLink` ao backend; estados de loading/erro reais.
+- **15 — Apple:** capability *Sign in with Apple*; `SignInWithAppleButton` + nonce → `POST /auth/apple`.
+- **16 — Google:** SPM `GoogleSignIn-iOS` (1ª dependência externa); `GIDClientID` no Info.plist → `POST /auth/google`.
+- **17 — Sync:** SwiftData como cache (`BillEntity`/`BudgetEntity`/`UserEntity`) + `DataRepository` (escritas otimistas, last-write-wins). `AppViewModel` passa a ler do repo; **`seedBills` removido**; `bills`/`user` começam vazios.
+- **18 — Sessão + Face ID:** auto-login via token no Keychain (pula auth); onboarding só na 1ª execução (flag UserDefaults); Face ID real (`LocalAuthentication`) ao reabrir quando `appLockEnabled`.
+- **19 — Limpeza:** `signOut` apaga Keychain+cache e vai para `.auth` (sem seed); estados loading/erro/vazio/offline nas telas; ATS HTTPS obrigatório.
+
+**Novos arquivos iOS:** `Networking/`, `Auth/`, `Store/`. **Editar:** `AppState.swift`, `ContentView.swift`, `AuthView.swift`, `financeApp.swift`, `SetupView.swift`, `ProfileView.swift`. **Projeto:** capability Apple, SPM GoogleSignIn, `.xcconfig`.
 
 ---
 
